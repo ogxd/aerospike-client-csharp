@@ -246,6 +246,17 @@ namespace Aerospike.Client
 				ErrorCount++;
 				FailOnApplicationError(new AerospikeException(e));
 			}
+
+#if NET6_0_OR_GREATER
+			var activity = Activity.Current;
+			if (activity != null)
+			{
+				activity.SetTag("node.name", node.Name);
+				activity.SetTag("node.address", node.NodeAddress);
+				activity.SetTag("node.errors", ErrorCount);
+				activity.SetTag("node.iterations", iteration);
+			}
+#endif
 		}
 
 		// Wrap the stateless event handlers in an instance, in order to avoid static delegate performance penalty.
@@ -911,6 +922,10 @@ namespace Aerospike.Client
 
 		private void FailCommand(AerospikeException ae)
 		{
+#if NET6_0_OR_GREATER
+			Activity.Current?.SetStatus(ActivityStatusCode.Error, ae.ToString());
+#endif
+
 			PutBackArgsOnError();
 			NotifyFailure(ae);
 		}
